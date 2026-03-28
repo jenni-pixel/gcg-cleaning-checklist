@@ -185,7 +185,7 @@ function saveMaint(day,val){state.maintNotes[day]=val;schedSave();}
 function saveInitials(day,val){state.initials[day]=val.toUpperCase();schedSave();}
 function pill(c){return'<span class="pill '+c+'">'+c.charAt(0).toUpperCase()+c.slice(1)+'</span>';}
 function switchDay(d){currentDay=d;renderTabs();renderSections();}
-function renderTabs(){var html='';DAYS.forEach(function(d){var p=dayProg(d),done=p[0],tot=p[1];var allDone=tot>0&&done===tot&&dayAllPhotos(d);var dot=allDone?'<span class="tab-dot"></span>':'';var cnt=(!allDone&&tot>0)?'<span class="tab-ct">'+done+'/'+tot+'</span>':'';html+='<button class="day-tab'+(d===currentDay?' active':''+'")+' onclick="switchDay(\''+d+'\')">' +d+dot+cnt+'</button>';});document.getElementById('day-tabs').innerHTML=html;}
+function renderTabs(){var html='';DAYS.forEach(function(d){var p=dayProg(d),done=p[0],tot=p[1];var allDone=tot>0&&done===tot&&dayAllPhotos(d);var dot=allDone?'<span class="tab-dot"></span>':'';var cnt=(!allDone&&tot>0)?'<span class="tab-ct">'+done+'/'+tot+'</span>':'';var cls='day-tab'+(d===currentDay?' active':'');var i=DAYS.indexOf(d);html+='<button class="'+cls+'" onclick="switchDay(DAYS['+i+'])">'+d+dot+cnt+'</button>';});document.getElementById('day-tabs').innerHTML=html;}
 function renderSections(){var body=document.getElementById('main'),day=currentDay,meta=DAY_META[day],html='';
 if(state.submitted)html+='<div class="sub-banner"><div class="chk-circle">\u2713</div><div><h4>Week submitted!</h4><p>Report emailed to Jenni \u2014 '+(state.submittedAt||'')+'</p></div></div>';
 var bc=meta.coaches.length>1?'both':meta.coaches[0];
