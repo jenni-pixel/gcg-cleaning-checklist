@@ -4,8 +4,230 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GCG Cleaning Checklist</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#1D3557;--gold:#E8A020;--gold-light:#FDF3E0;--gold-border:#F0C060;--ashley:#7B2D00;--ashley-bg:#FFF0E8;--ashley-border:#F5C4A0;--jenna:#1A4A7A;--jenna-bg:#EBF3FC;--jenna-border:#A8CCEE;--green:#1A6B45;--green-bg:#E6F5EE;--green-border:#7ECBA8;--red-bg:#FEF0F0;--red-border:#F5AAAA;--red-text:#8B1A1A;--bg:#F7F6F2;--surface:#FFFFFF;--border:#E4E1D8;--text:#1C1B18;--text-muted:#7A7870;--text-light:#B0ADA4;--radius:10px;--radius-sm:6px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{opacity:1!important;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+.top-bar{background:var(--navy);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.top-bar-left{display:flex;align-items:center;gap:12px;}
+.logo{width:32px;height:32px;background:var(--gold);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--navy);}
+.top-bar h1{font-size:16px;font-weight:600;color:#fff;}
+.top-bar-right{display:flex;align-items:center;gap:10px;}
+.week-label{font-size:12px;color:rgba(255,255,255,0.6);font-family:'DM Mono',monospace;}
+.sync-dot{font-size:11px;padding:3px 8px;border-radius:20px;font-weight:500;}
+.sync-dot.synced{background:rgba(126,203,168,0.2);color:#7ECBA8;}
+.sync-dot.syncing{background:rgba(232,160,32,0.2);color:var(--gold);}
+.sync-dot.error{background:rgba(245,170,170,0.2);color:#F5AAAA;}
+.prog-outer{height:3px;background:rgba(255,255,255,0.1);}
+.prog-inner{height:100%;background:var(--gold);transition:width 0.4s ease;}
+.tabs-wrap{background:var(--surface);border-bottom:1px solid var(--border);padding:0 16px;overflow-x:auto;display:flex;white-space:nowrap;}
+.day-tab{padding:14px 18px;font-size:13px;font-weight:500;color:var(--text-muted);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;flex-shrink:0;}
+.day-tab:hover{color:var(--text);}
+.day-tab.active{color:var(--navy);border-bottom-color:var(--navy);font-weight:600;}
+.tab-dot{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;margin-left:5px;vertical-align:middle;margin-bottom:1px;}
+.tab-ct{font-size:10px;font-family:'DM Mono',monospace;color:var(--text-light);margin-left:4px;}
+.main{padding:16px;max-width:680px;margin:0 auto;}
+.day-banner{border-radius:var(--radius);padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.day-banner.ashley{background:var(--ashley-bg);border:1px solid var(--ashley-border);}
+.day-banner.jenna{background:var(--jenna-bg);border:1px solid var(--jenna-border);}
+.day-banner.both{background:linear-gradient(135deg,var(--jenna-bg) 50%,var(--ashley-bg) 50%);border:1px solid var(--border);}
+.day-banner h2{font-size:14px;font-weight:600;color:var(--text);}
+.cpills{display:flex;gap:6px;flex-wrap:wrap;}
+.pill{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;}
+.pill.ashley{background:var(--ashley-bg);color:var(--ashley);border:1px solid var(--ashley-border);}
+.pill.jenna{background:var(--jenna-bg);color:var(--jenna);border:1px solid var(--jenna-border);}
+.sec-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;overflow:hidden;transition:border-color 0.2s;}
+.sec-card.needs-photo{border-color:var(--red-border);}
+.sec-card.has-photo{border-color:var(--green-border);}
+.sec-head{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:#FAFAF8;border-bottom:1px solid var(--border);gap:8px;flex-wrap:wrap;}
+.sec-head-left{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.sec-head h3{font-size:13px;font-weight:600;color:var(--text);}
+.sec-meta{font-size:11px;color:var(--text-light);font-family:'DM Mono',monospace;}
+.sec-prog{font-size:12px;font-weight:500;color:var(--text-muted);white-space:nowrap;}
+.sec-prog.done{color:var(--green);}
+.chk-row{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-bottom:1px solid #F2F1ED;transition:background 0.1s;cursor:pointer;}
+.chk-row:last-child{border-bottom:none;}
+.chk-row:hover{background:#FAFAF8;}
+.chk-row input[type="checkbox"]{width:16px;height:16px;flex-shrink:0;margin-top:2px;accent-color:var(--navy);cursor:pointer;}
+.chk-row label{font-size:13px;color:var(--text);line-height:1.5;cursor:pointer;flex:1;}
+.chk-row.checked label{text-decoration:line-through;color:var(--text-light);}
+.photo-footer{border-top:1px solid #F2F1ED;padding:10px 14px;transition:background 0.2s;}
+.photo-footer.pf-needs{background:var(--red-bg);border-top-color:var(--red-border);}
+.photo-footer.pf-has{background:var(--green-bg);border-top-color:var(--green-border);}
+.photo-footer.pf-neutral{background:#FAFAF8;}
+.pf-lbl{font-size:11px;font-weight:600;margin-bottom:7px;}
+.pf-lbl.lbl-needs{color:var(--red-text);}
+.pf-lbl.lbl-has{color:var(--green);}
+.pf-lbl.lbl-neutral{color:var(--text-muted);}
+.photo-btn-lbl{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border:1px dashed var(--border);border-radius:var(--radius-sm);font-size:12px;font-weight:500;color:var(--text-muted);background:var(--surface);cursor:pointer;transition:all 0.15s;font-family:'DM Sans',sans-serif;}
+.photo-btn-lbl:hover{border-color:var(--navy);color:var(--navy);}
+.photo-inp{display:none;}
+.photo-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+.photo-thumb{position:relative;width:68px;height:68px;border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border);flex-shrink:0;}
+.photo-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.rm-btn{position:absolute;top:2px;right:2px;width:18px;height:18px;background:rgba(0,0,0,0.65);color:#fff;border:none;border-radius:50%;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;line-height:1;}
+.maint-card{background:var(--surface);border:1px solid var(--gold-border);border-radius:var(--radius);margin-bottom:10px;overflow:hidden;}
+.maint-head{padding:11px 14px;background:var(--gold-light);border-bottom:1px solid var(--gold-border);}
+.maint-head h3{font-size:13px;font-weight:600;color:#7A4A00;}
+.maint-head p{font-size:11px;color:#A06020;margin-top:2px;}
+.maint-body{padding:12px 14px;}
+.maint-ta{width:100%;border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--bg);resize:vertical;min-height:80px;outline:none;}
+.maint-ta:focus{border-color:var(--gold);}
+.supplies-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:14px;overflow:hidden;}
+.supplies-head{padding:11px 14px;background:#FAFAF8;border-bottom:1px solid var(--border);}
+.supplies-head h3{font-size:13px;font-weight:600;}
+.sup-grid{display:grid;grid-template-columns:1fr 1fr;}
+.sup-row{display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid #F2F1ED;cursor:pointer;}
+.sup-row:nth-last-child(-n+2){border-bottom:none;}
+.sup-row:hover{background:#FAFAF8;}
+.sup-row input{accent-color:var(--ashley);width:14px;height:14px;cursor:pointer;}
+.sup-row label{font-size:13px;cursor:pointer;}
+.submit-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-top:6px;}
+.submit-panel h3{font-size:15px;font-weight:600;margin-bottom:4px;}
+.submit-panel>p{font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.5;}
+.block-notice{background:var(--red-bg);border:1px solid var(--red-border);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--red-text);line-height:1.6;}
+.week-sum{border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:16px;}
+.sum-row{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid #F2F1ED;font-size:13px;flex-wrap:wrap;}
+.sum-row:last-child{border-bottom:none;}
+.sum-day{font-weight:600;min-width:32px;}
+.sum-type{font-size:11px;color:var(--text-light);flex:1;}
+.sum-stat{font-size:12px;color:var(--text-muted);}
+.sum-stat.s-done{color:var(--green);font-weight:600;}
+.sum-stat.s-warn{color:var(--red-text);font-weight:500;}
+.init-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;}
+.init-cell{background:var(--bg);border-radius:var(--radius-sm);padding:10px 12px;}
+.init-cell label{font-size:10px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.06em;}
+.init-inp{font-size:14px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;width:100%;background:var(--surface);color:var(--text);font-family:'DM Mono',monospace;text-transform:uppercase;outline:none;}
+.init-inp:focus{border-color:var(--navy);}
+.sub-btn{width:100%;padding:13px;background:var(--navy);color:#fff;border:none;border-radius:var(--radius);font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background 0.15s;}
+.sub-btn:hover:not(:disabled){background:#162840;}
+.sub-btn:disabled{background:var(--border);color:var(--text-light);cursor:not-allowed;}
+.status-msg{font-size:13px;margin-top:10px;padding:10px 14px;border-radius:var(--radius-sm);line-height:1.5;}
+.status-msg.success{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border);}
+.status-msg.error{background:var(--red-bg);color:var(--red-text);border:1px solid var(--red-border);}
+.status-msg.sending{background:var(--gold-light);color:#7A4A00;border:1px solid var(--gold-border);}
+.sub-banner{background:var(--green-bg);border:1px solid var(--green-border);border-radius:var(--radius);padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:12px;}
+.chk-circle{width:30px;height:30px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.sub-banner h4{font-size:14px;font-weight:600;color:var(--green);}
+.sub-banner p{font-size:12px;color:var(--green);margin-top:2px;opacity:0.8;}
+.loading{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:12px;}
+.loading p{font-size:14px;color:var(--text-muted);}
+.spinner{width:28px;height:28px;border:2px solid var(--border);border-top-color:var(--navy);border-radius:50%;animation:spin 0.7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+@media(max-width:480px){.init-grid{grid-template-columns:repeat(2,1fr);}.sup-grid{grid-template-columns:1fr;}.main{padding:12px;}}
+</style>
 </head>
 <body>
-<p>Loading...</p>
+<div class="top-bar">
+<div class="top-bar-left"><div class="logo">GCG</div><h1>Cleaning Checklist</h1></div>
+<div class="top-bar-right"><span class="week-label" id="week-label"></span><span class="sync-dot synced" id="sync-dot">&#9679; synced</span></div>
+</div>
+<div class="prog-outer"><div class="prog-inner" id="prog-bar" style="width:0%"></div></div>
+<div class="tabs-wrap" id="day-tabs"></div>
+<div class="main" id="main"><div class="loading"><div class="spinner"></div><p>Loading checklist...</p></div></div>
+<script>
+var SCRIPT_URL='https://script.google.com/macros/s/AKfycbwGezVgBDtrY3tBkktQnvqJwCcIjUvDMXDEmW7iNZzb44O4ONwoAPha1l61-ZSuzcQKOg/exec';
+var DAYS=['Mon','Tue','Wed','Thu','Fri','Sat'];
+var DAY_META={Mon:{label:'Walk-through & maintenance check',coaches:['ashley']},Tue:{label:'Deep clean',coaches:['jenna','ashley']},Wed:{label:'Maintenance clean',coaches:['jenna']},Thu:{label:'Deep clean',coaches:['jenna','ashley']},Fri:{label:'Maintenance clean',coaches:['ashley']},Sat:{label:'Full close-out clean',coaches:['ashley']}};
+var SECTIONS=[
+{id:'mon_wt',title:'Walk-through checklist',coach:'ashley',days:['Mon'],items:['Trash taken out in all areas — trash cans wiped down','No junk or equipment left out on floor','Front section tidy — merch organized, no clutter','Back section tidy — desk clear, stickers in basket','Bathrooms checked — toilet paper, paper towels & soap stocked, no trash on floor','Chalk gate wiped down','Windows/doors — no visible smudges from outside','Gym looks presentable for class']},
+{id:'mon_maint',title:'Maintenance requests',coach:'ashley',days:['Mon'],items:[],isMaint:true},
+{id:'bath_deep',title:'Bathrooms',coach:'jenna',days:['Tue','Thu'],meta:'Scrub N Bubbles + paper towels — 15 min',items:['Counters scrubbed and dried','Water residue wiped off wall and side of sink','Dryer wiped down','All of toilet and toilet seat pieces cleaned','Shelf above toilet and side table cleaned','Doors wiped down','Trash emptied and wiped down','Floors swept and vacuumed','Toilet paper refilled']},
+{id:'back_deep',title:'Back section',coach:'jenna',days:['Tue','Thu'],items:['Deck organized and wiped down','Fridge and water refill station emptied & wiped down','Trash emptied and wiped down','Stickers/back desk put away — all in basket','Shoes or stuff cleared from under desk','Foam blocks put away','No trash on floor']},
+{id:'kg_deep',title:'Kindergym area',coach:'jenna',days:['Tue','Thu'],meta:'Scrub N Bubbles or Clorox wipes — 30 min',items:['All dots/props cleaned front and back','Dot boxes cleaned (not wire ones)','All french fries cleaned','Wooden shelf cleaned and wiped down','Organize prop shelf & de-dust','Boxes with dots put back and organized','Small bars organized','French fries organized','Purple, green, blue, and yellow triangles cleaned and organized']},
+{id:'floor_vac',title:'Floor — full vacuum',coach:'jenna',days:['Tue','Thu'],meta:'15 min',items:['All areas of big floor vacuumed (non-mat sections)','Black section of ninja area vacuumed','Blue piece vacuumed']},
+{id:'mats_deep',title:'Bar & beam mats + panel mats',coach:'ashley',days:['Tue','Thu'],meta:'Scrub N Bubbles + paper towels — 30 min',items:['All bar & beam mats opened and cleaned','Clean in between bar spaces — vacuum bars and beam chalk','All panel mats opened and cleaned','Panel mats put back and organized','All red cartwheel blocks cleaned front and back and put back','Ninja mats cleaned and wiped down','All large floor mats wiped down','Beams — mats under beams straight','Green mats pushed together','Panel mats under beams stacked nicely']},
+{id:'bars_deep',title:'Bar area',coach:'ashley',days:['Tue','Thu'],meta:'Clorox wipes — 15 min',items:['All metal bar pieces cleaned','All bar stands cleaned','Blue foam pieces cleaned','Boxes and weights organized','Chalk box covered (if Richard not on bars)']},
+{id:'beams_deep',title:'Beams area',coach:'ashley',days:['Tue','Thu'],items:['Floor beams neatly stacked','Cartwheel blocks neatly placed','Stairs put away','Trash taken out']},
+{id:'front_wed',title:'Front section',coach:'jenna',days:['Wed'],items:['All windows and doors cleaned inside and out','Gate wiped down of all chalk','Merch organized','Trash emptied if needed and wiped down','No trash on floor']},
+{id:'bath_wed',title:'Bathrooms',coach:'jenna',days:['Wed'],items:['Counters wiped down','Water residue wiped off wall and side of sink','Dryer wiped down','Trash emptied if needed','Toilet wiped down','Trash picked up off floor','Toilet paper refilled if needed']},
+{id:'back_wed',title:'Back section',coach:'jenna',days:['Wed'],items:['Deck organized and wiped down','Fridge and refill station wiped down','Trash emptied if needed','No trash on floor','Stickers in basket','Back area generally tidy']},
+{id:'front_fri',title:'Front section',coach:'ashley',days:['Fri'],items:['Windows and doors wiped down','Gate wiped down of chalk','Merch organized','Trash emptied and wiped down','No trash on floor']},
+{id:'bars_fri',title:'Bar area',coach:'ashley',days:['Fri'],items:['Bar pieces wiped down','Bar stands wiped','Blue foam pieces cleaned','Chalk box covered','Area generally organized']},
+{id:'gen_fri',title:'General gym check',coach:'ashley',days:['Fri'],items:['All trash taken out','No junk or equipment out of place','Kindergym — dots and fries organized','Beams area tidy','Back section tidy']},
+{id:'front_sat',title:'Front section',coach:'ashley',days:['Sat'],items:['All windows and doors cleaned inside and out','Gate wiped down of all chalk','Merch organized and counted','Trash emptied and wiped down','No trash on floor']},
+{id:'back_sat',title:'Back section',coach:'ashley',days:['Sat'],items:['Deck organized and wiped down','Fridge and refill station wiped down','Trash emptied and wiped down','Stickers in basket','No trash on floor','Shoes and stuff cleared from under desk','Foam blocks put away']},
+{id:'bath_sat',title:'Bathrooms',coach:'ashley',days:['Sat'],items:['Counters scrubbed and dried','Water residue wiped off wall and sink','Dryer wiped down','Trash emptied and wiped down','Toilet wiped down','Doors wiped down','Toilet paper refilled','Floor swept']},
+{id:'mats_sat',title:'Mats — close-out wipe',coach:'ashley',days:['Sat'],items:['Ninja mats wiped down','Panel mats checked and stacked','Beams area mats straight','Green mats pushed together','Kindergym dots and fries organized']},
+{id:'bars_sat',title:'Bar area & beams',coach:'ashley',days:['Sat'],items:['All metal bar pieces cleaned','Chalk box covered','Boxes and weights organized','Floor beams stacked','Cartwheel blocks placed','Stairs put away']},
+{id:'patio_sat',title:'Back patio & outside',coach:'ashley',days:['Sat'],items:['Large yellow trash taken out','Playhouse wiped down inside and out','Outside tables wiped down','Patio hosed/washed down','Front entrance checked for trash','Trash picked out of planters','Plants watered']},
+{id:'close_sat',title:'Final close-out',coach:'ashley',days:['Sat'],items:['All trash taken out across entire gym','All equipment put away','Lights off in all areas','Gym ready for Monday']}
+];
+var SUPPLIES=['Scrub N Bubbles','Windex','Paper towels','Toilet paper','Floor cleaner','Magic erasers','Blue mop pads washed','Clorox wipes'];
+var state={};
+var currentDay='Mon';
+var syncTimer=null;
+var localPhotos={};
+function getWeekKey(){var d=new Date(),dy=d.getDay();var mon=new Date(d);mon.setDate(d.getDate()-dy+(dy===0?-6:1));mon.setHours(0,0,0,0);return'week_'+mon.toISOString().split('T')[0];}
+function getWeekLabel(){var d=new Date(),dy=d.getDay();var mon=new Date(d);mon.setDate(d.getDate()-dy+(dy===0?-6:1));var sat=new Date(mon);sat.setDate(mon.getDate()+5);function fmt(dt){return dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}return fmt(mon)+' - '+fmt(sat);}
+function setSync(s,t){var el=document.getElementById('sync-dot');el.className='sync-dot '+s;el.textContent='\u25CF '+t;}
+function apiCall(params,callback){var action=params.action;if(action==='sendReport'){var body=Object.keys(params).map(function(k){return encodeURIComponent(k)+'='+encodeURIComponent(params[k]);}).join('&');fetch(SCRIPT_URL,{method:'POST',mode:'cors',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body}).then(function(r){return r.json();}).then(function(data){if(callback)callback(null,data);}).catch(function(err){if(callback)callback(err,null);});}else{var url=SCRIPT_URL+'?cb='+Date.now();Object.keys(params).forEach(function(k){url+='&'+encodeURIComponent(k)+'='+encodeURIComponent(params[k]);});if(action==='get')setSync('syncing','syncing...');if(action==='set')setSync('syncing','saving...');fetch(url,{method:'GET',mode:'cors'}).then(function(r){return r.json();}).then(function(data){if(action==='get'||action==='set')setSync('synced','synced');if(callback)callback(null,data);}).catch(function(err){if(action==='get')setSync('error','offline');if(action==='set')setSync('error','save failed');if(callback)callback(err,null);});}}
+function schedSave(){if(syncTimer)clearTimeout(syncTimer);syncTimer=setTimeout(function(){var saveState=JSON.parse(JSON.stringify(state));saveState.photoCounts={};DAYS.forEach(function(d){saveState.photoCounts[d]={};SECTIONS.forEach(function(s){var key=d+'_'+s.id;saveState.photoCounts[d][s.id]=localPhotos[key]?localPhotos[key].length:0;});});apiCall({action:'set',key:getWeekKey(),value:JSON.stringify(saveState)},null);},1200);}
+function initState(){state={checks:{},maintNotes:{},supplies:{},initials:{},submitted:false,submittedAt:''};DAYS.forEach(function(d){state.checks[d]={};state.initials[d]='';state.maintNotes[d]='';SECTIONS.filter(function(s){return s.days.indexOf(d)>-1;}).forEach(function(s){state.checks[d][s.id]={};s.items.forEach(function(_,i){state.checks[d][s.id][i]=false;});});});SUPPLIES.forEach(function(_,i){state.supplies[i]=false;});localPhotos={};}
+function loadAndRender(){apiCall({action:'get'},function(err,data){if(!err&&data&&data.success&&data.data){var raw=data.data[getWeekKey()];if(raw){try{state=JSON.parse(raw);}catch(e){initState();}if(!state.checks)initState();}else initState();}else initState();renderTabs();renderSections();updateProg();});}
+function photoKey(day,secId){return day+'_'+secId;}
+function getPhotos(day,secId){var k=photoKey(day,secId);if(!localPhotos[k])localPhotos[k]=[];return localPhotos[k];}
+function addPhotos(day,secId,files){var k=photoKey(day,secId);if(!localPhotos[k])localPhotos[k]=[];Array.prototype.slice.call(files).forEach(function(f){var reader=new FileReader();reader.onload=function(e){localPhotos[k].push({name:f.name,data:e.target.result});schedSave();refreshPhotoUI(day,secId);renderTabs();};reader.readAsDataURL(f);});}
+function removePhoto(day,secId,idx){var k=photoKey(day,secId);if(localPhotos[k]){localPhotos[k].splice(idx,1);schedSave();refreshPhotoUI(day,secId);renderTabs();if(currentDay==='Sat')renderSubmitPanel();}}
+function thumbsHTML(day,secId){return getPhotos(day,secId).map(function(p,i){return'<div class="photo-thumb"><img src="'+p.data+'" alt="'+p.name+'"><button class="rm-btn" onclick="removePhoto(\''+day+'\',\''+secId+'\',' +i+')">&#215;</button></div>';}).join('');}
+function refreshPhotoUI(day,secId){var photos=getPhotos(day,secId),has=photos.length>0;var card=document.getElementById('sc_'+day+'_'+secId);var footer=document.getElementById('pf_'+day+'_'+secId);var lbl=document.getElementById('pl_'+day+'_'+secId);var thumbs=document.getElementById('pt_'+day+'_'+secId);if(card)card.className='sec-card '+(has?'has-photo':'needs-photo');if(footer)footer.className='photo-footer '+(has?'pf-has':'pf-needs');if(lbl){lbl.className='pf-lbl '+(has?'lbl-has':'lbl-needs');lbl.textContent=has?'\u2713 '+photos.length+' photo'+(photos.length>1?'s':'')+' attached':'\u26A0 Photo required to complete this section';}if(thumbs)thumbs.innerHTML=thumbsHTML(day,secId);updateProg();if(currentDay==='Sat'){var sp=document.getElementById('submit-panel');if(sp)renderSubmitPanel();}}
+function daySecs(day){return SECTIONS.filter(function(s){return s.days.indexOf(day)>-1;});}
+function secProg(day,secId){var s=SECTIONS.find(function(x){return x.id===secId;});if(!s||s.isMaint)return[0,0];var checks=(state.checks[day]&&state.checks[day][secId])||{};return[s.items.filter(function(_,i){return checks[i];}).length,s.items.length];}
+function dayProg(day){var t=0,d=0;daySecs(day).filter(function(s){return!s.isMaint;}).forEach(function(s){var p=secProg(day,s.id);d+=p[0];t+=p[1];});return[d,t];}
+function dayAllPhotos(day){return daySecs(day).filter(function(s){return!s.isMaint;}).every(function(s){return getPhotos(day,s.id).length>0;});}
+function totalProg(){var t=0,d=0;DAYS.forEach(function(dy){var p=dayProg(dy);d+=p[0];t+=p[1];});return[d,t];}
+function updateProg(){var p=totalProg(),pct=p[1]>0?Math.round(p[0]/p[1]*100):0;var el=document.getElementById('prog-bar');if(el)el.style.width=pct+'%';}
+function toggleCheck(day,secId,idx){if(state.submitted)return;if(!state.checks[day])state.checks[day]={};if(!state.checks[day][secId])state.checks[day][secId]={};state.checks[day][secId][idx]=!state.checks[day][secId][idx];schedSave();updateProg();renderTabs();renderSections();}
+function toggleSupply(idx){state.supplies[idx]=!state.supplies[idx];schedSave();}
+function saveMaint(day,val){state.maintNotes[day]=val;schedSave();}
+function saveInitials(day,val){state.initials[day]=val.toUpperCase();schedSave();}
+function pill(c){return'<span class="pill '+c+'">'+c.charAt(0).toUpperCase()+c.slice(1)+'</span>';}
+function switchDay(d){currentDay=d;renderTabs();renderSections();}
+function renderTabs(){var html='';DAYS.forEach(function(d){var p=dayProg(d),done=p[0],tot=p[1];var allDone=tot>0&&done===tot&&dayAllPhotos(d);var dot=allDone?'<span class="tab-dot"></span>':'';var cnt=(!allDone&&tot>0)?'<span class="tab-ct">'+done+'/'+tot+'</span>':'';html+='<button class="day-tab'+(d===currentDay?' active':''+'")+' onclick="switchDay(\''+d+'\')">' +d+dot+cnt+'</button>';});document.getElementById('day-tabs').innerHTML=html;}
+function renderSections(){var body=document.getElementById('main'),day=currentDay,meta=DAY_META[day],html='';
+if(state.submitted)html+='<div class="sub-banner"><div class="chk-circle">\u2713</div><div><h4>Week submitted!</h4><p>Report emailed to Jenni \u2014 '+(state.submittedAt||'')+'</p></div></div>';
+var bc=meta.coaches.length>1?'both':meta.coaches[0];
+html+='<div class="day-banner '+bc+'"><h2>'+day+' \u2014 '+meta.label+'</h2><div class="cpills">'+meta.coaches.map(function(c){return pill(c);}).join('')+'</div></div>';
+daySecs(day).forEach(function(sec){
+if(sec.isMaint){var notes=(state.maintNotes&&state.maintNotes[day])||'';
+html+='<div class="maint-card"><div class="maint-head"><h3>Maintenance requests</h3><p>Note anything broken, low, or needing attention \u2014 included in weekly report</p></div><div class="maint-body"><textarea class="maint-ta" placeholder="e.g. Chalk bucket cracked, faucet dripping..." oninput="saveMaint(\''+day+'\',this.value)">'+notes+'</textarea><div style="margin-top:10px;"><div class="pf-lbl lbl-neutral" style="margin-bottom:7px;">Attach maintenance photos (optional)</div><label class="photo-btn-lbl" for="ph_'+day+'_'+sec.id+'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>Add photos</label><input type="file" id="ph_'+day+'_'+sec.id+'" class="photo-inp" accept="image/*" multiple onchange="addPhotos(\''+day+'\',\''+sec.id+'\',this.files)"><div class="photo-row" id="pt_'+day+'_'+sec.id+'">'+thumbsHTML(day,sec.id)+'</div></div></div></div>';
+return;}
+var p=secProg(day,sec.id),done=p[0],total=p[1],allDone=done===total&&total>0;
+var photos=getPhotos(day,sec.id),hasPhoto=photos.length>0;
+var cardCls=allDone?(hasPhoto?'has-photo':'needs-photo'):'';
+var footerCls=hasPhoto?'pf-has':'pf-needs';
+var lblCls=hasPhoto?'lbl-has':'lbl-needs';
+var lblTxt=hasPhoto?'\u2713 '+photos.length+' photo'+(photos.length>1?'s':'')+' attached':'\u26A0 Photo required to complete this section';
+var progTxt=(allDone&&hasPhoto)?'\u2713 done':done+'/'+total;
+var progCls=(allDone&&hasPhoto)?'sec-prog done':'sec-prog';
+var metaHtml=sec.meta?'<span class="sec-meta">'+sec.meta+'</span>':'';
+html+='<div class="sec-card '+cardCls+'" id="sc_'+day+'_'+sec.id+'"><div class="sec-head"><div class="sec-head-left">'+pill(sec.coach)+'<h3>'+sec.title+'</h3>'+metaHtml+'</div><span class="'+progCls+'">'+progTxt+'</span></div>';
+sec.items.forEach(function(item,i){var checks=(state.checks[day]&&state.checks[day][sec.id])||{};var chk=checks[i]||false;var cid='chk_'+day+'_'+sec.id+'_'+i;html+='<div class="'+(chk?'chk-row checked':'chk-row')+'"><input type="checkbox" id="'+cid+'" '+(chk?'checked':'')+' '+(state.submitted?'disabled':'')+' onchange="toggleCheck(\''+day+'\',\''+sec.id+'\',' +i+')"><label for="'+cid+'">'+item+'</label></div>';});
+html+='<div class="photo-footer '+footerCls+'" id="pf_'+day+'_'+sec.id+'"><div class="pf-lbl '+lblCls+'" id="pl_'+day+'_'+sec.id+'">'+lblTxt+'</div><label class="photo-btn-lbl" for="ph_'+day+'_'+sec.id+'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>'+(hasPhoto?'Add more photos':'Add photo')+'</label><input type="file" id="ph_'+day+'_'+sec.id+'" class="photo-inp" accept="image/*" multiple onchange="addPhotos(\''+day+'\',\''+sec.id+'\',this.files)"><div class="photo-row" id="pt_'+day+'_'+sec.id+'">'+thumbsHTML(day,sec.id)+'</div></div></div>';
+});
+if(day==='Sat'){html+='<div class="supplies-card"><div class="supplies-head"><h3>Supplies \u2014 check what needs restocking</h3></div><div class="sup-grid">';SUPPLIES.forEach(function(s,i){html+='<div class="sup-row"><input type="checkbox" id="sup_'+i+'" '+(state.supplies[i]?'checked':'')+' onchange="toggleSupply('+i+')"><label for="sup_'+i+'">'+s+'</label></div>';});html+='</div></div><div id="submit-panel"></div>';}
+body.innerHTML=html;if(day==='Sat')renderSubmitPanel();updateProg();}
+function renderSubmitPanel(){var sp=document.getElementById('submit-panel');if(!sp)return;if(state.submitted){sp.innerHTML='';return;}
+var missing=[];DAYS.forEach(function(d){SECTIONS.filter(function(s){return!s.isMaint&&s.days.indexOf(d)>-1;}).forEach(function(s){if(getPhotos(d,s.id).length===0)missing.push(d+': '+s.title);});});
+var canSub=missing.length===0;
+var html='<div class="submit-panel"><h3>Submit week & send report</h3><p>Every section needs at least one photo before submitting. Enter initials for each day, then submit \u2014 the full report will be emailed to Jenni automatically.</p>';
+if(!canSub){var missingList=missing.slice(0,8).map(function(m){return'\u2022 '+m;}).join('<br>');var moreStr=missing.length>8?'<br>...and '+(missing.length-8)+' more':'';html+='<div class="block-notice"><strong>Photos still needed ('+missing.length+' section'+(missing.length>1?'s':'')+'):</strong><br>'+missingList+moreStr+'</div>';}
+html+='<div class="week-sum">';DAYS.forEach(function(d){var p=dayProg(d),dn=p[0],tt=p[1],allD=dn===tt&&tt>0,pDone=dayAllPhotos(d),bothDone=allD&&pDone;var mn=(state.maintNotes&&state.maintNotes[d]&&state.maintNotes[d].trim())?' + note':'';var totPh=SECTIONS.filter(function(s){return!s.isMaint&&s.days.indexOf(d)>-1;}).reduce(function(acc,s){return acc+getPhotos(d,s.id).length;},0);var phStr=totPh>0?' + '+totPh+' photo'+(totPh>1?'s':''):'';var statCls=bothDone?'sum-stat s-done':(!pDone?'sum-stat s-warn':'sum-stat');var statTxt=bothDone?'\u2713 ready':(!pDone?'\u26A0 photos missing':dn+'/'+tt);html+='<div class="sum-row"><span class="sum-day">'+d+'</span><span class="sum-type">'+DAY_META[d].label+'</span><span class="'+statCls+'">'+statTxt+mn+phStr+'</span></div>';});html+='</div>';
+html+='<div class="init-grid">';DAYS.forEach(function(d){var coaches=DAY_META[d].coaches.map(function(c){return c.charAt(0).toUpperCase()+c.slice(1);}).join(' + ');var val=(state.initials&&state.initials[d])||'';html+='<div class="init-cell"><label>'+d+' \u2014 '+coaches+'</label><input type="text" class="init-inp" maxlength="5" placeholder="\u2014" value="'+val+'" oninput="saveInitials(\''+d+'\',this.value)"></div>';});html+='</div>';
+html+='<button class="sub-btn" id="sub-btn" '+(canSub?'':'disabled')+' onclick="submitWeek()">'+(canSub?'Submit week & send report to Jenni \u2192':'Add missing photos to unlock submission')+'</button><div id="status-msg" style="display:none;" class="status-msg"></div></div>';
+sp.innerHTML=html;}
+function buildReport(){var week=getWeekLabel(),supNeeded=SUPPLIES.filter(function(_,i){return state.supplies[i];});
+var lines=['GCG WEEKLY CLEANING REPORT','Week of '+week,'Submitted: '+new Date().toLocaleString(),''];
+DAYS.forEach(function(d){var p=dayProg(d),initials=(state.initials&&state.initials[d])||'\u2014';lines.push(d.toUpperCase()+' \u2014 '+DAY_META[d].label+' ('+DAY_META[d].coaches.join(' + ')+') | '+p[0]+'/'+p[1]+' items | Initials: '+initials);SECTIONS.filter(function(s){return!s.isMaint&&s.days.indexOf(d)>-1;}).forEach(function(s){var sp=secProg(d,s.id),checks=(state.checks[d]&&state.checks[d][s.id])||{},photos=getPhotos(d,s.id);if(sp[0]<sp[1]){var missed=s.items.filter(function(_,i){return!checks[i];});lines.push('  '+s.title+': '+sp[0]+'/'+sp[1]+' \u2014 missed: '+missed.join('; '));}else lines.push('  '+s.title+': \u2713 ['+photos.length+' photo'+(photos.length!==1?'s':'')+']');});var maint=state.maintNotes&&state.maintNotes[d];if(maint&&maint.trim())lines.push('  MAINTENANCE NOTE: '+maint.trim());var mp=getPhotos(d,'mon_maint');if(mp.length)lines.push('  MAINTENANCE PHOTOS: '+mp.length+' attached');lines.push('');});
+if(supNeeded.length){lines.push('SUPPLIES NEEDED:');supNeeded.forEach(function(s){lines.push('  \u2022 '+s);});}else lines.push('SUPPLIES: all stocked');return lines.join('\n');}
+function submitWeek(){var btn=document.getElementById('sub-btn');if(btn)btn.disabled=true;showStatus('Sending report to Jenni...','sending');var reportText=buildReport(),week=getWeekLabel();apiCall({action:'sendReport',week:week,reportText:reportText},function(err,data){if(!err&&data&&data.success){state.submitted=true;state.submittedAt=new Date().toLocaleString();schedSave();renderTabs();renderSections();}else{showStatus('Could not send automatically. Copy the report below to email manually.','error');appendFallback(reportText);if(btn)btn.disabled=false;}});}
+function appendFallback(txt){var msg=document.getElementById('status-msg');if(!msg)return;var a=document.createElement('textarea');a.value=txt;a.style.cssText='width:100%;height:200px;font-size:12px;margin-top:10px;border:1px solid #E4E1D8;border-radius:6px;padding:10px;font-family:monospace;color:#1C1B18;background:#F7F6F2;';msg.appendChild(a);}
+function showStatus(msg,type){var el=document.getElementById('status-msg');if(!el)return;el.textContent=msg;el.className='status-msg '+type;el.style.display='block';}
+document.getElementById('week-label').textContent=getWeekLabel();
+var ti=new Date().getDay();if(ti>=1&&ti<=6)currentDay=DAYS[ti-1];
+loadAndRender();
+</script>
 </body>
 </html>
