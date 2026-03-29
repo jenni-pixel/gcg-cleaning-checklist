@@ -28,7 +28,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .day-tab.active{color:var(--navy);border-bottom-color:var(--navy);font-weight:600;}
 .tab-dot{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;margin-left:5px;vertical-align:middle;margin-bottom:1px;}
 .tab-ct{font-size:10px;font-family:'DM Mono',monospace;color:var(--text-light);margin-left:4px;}
-.main{padding:16px;max-width:680px;margin:0 auto;}
+.main{padding:16px;max-width:100%;margin:0 auto;}
 .day-banner{border-radius:var(--radius);padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
 .day-banner.ashley{background:var(--ashley-bg);border:1px solid var(--ashley-border);}
 .day-banner.jenna{background:var(--jenna-bg);border:1px solid var(--jenna-border);}
@@ -225,7 +225,7 @@ function renderDaySubmitPanel(){
   var isDaySubmitted=state.daySubmitted&&state.daySubmitted[day];
   if(isDaySubmitted){sp.innerHTML='';return;}
   var missingSecs=daySecs(day).filter(function(s){return!s.isMaint&&getPhotos(day,s.id).length===0;});
-  var canSub=missingSecs.length===0;
+  var canSub=true;
   var initVal=(state.initials&&state.initials[day])||'';
   var html='<div class="submit-panel"><h3>Submit '+day+'\u2019s report</h3><p>Add a photo for each section, enter your initials, then hit Submit \u2014 Jenni will get an email with the photos and checklist automatically.</p>';
   if(!canSub){var missList=missingSecs.slice(0,6).map(function(s){return'\u2022 '+s.title;}).join('<br>');var moreStr=missingSecs.length>6?'<br>...and '+(missingSecs.length-6)+' more':'';html+='<div class="block-notice"><strong>Photos still needed ('+missingSecs.length+' section'+(missingSecs.length>1?'s:':'s:')+'):</strong><br>'+missList+moreStr+'</div>';}
