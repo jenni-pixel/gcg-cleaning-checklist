@@ -227,7 +227,7 @@ function renderDaySubmitPanel(){
   var missingSecs=daySecs(day).filter(function(s){return!s.isMaint&&getPhotos(day,s.id).length===0;});
   var canSub=true;
   var initVal=(state.initials&&state.initials[day])||'';
-  var html='<div class="submit-panel"><h3>Submit '+day+'\u2019s report</h3><p>Add a photo for each section, enter your initials, then hit Submit \u2014 Jenni will get an email with the photos and checklist automatically.</p>';
+  var html='<div class="submit-panel"><h3>Submit '+day+'\u2019s report</h3><p>Enter your initials and hit Submit \u2014 Jenni will get an email. Adding photos per section is optional but encouraged \u2014 Jenni will get an email with the photos and checklist automatically.</p>';
   if(!canSub){var missList=missingSecs.slice(0,6).map(function(s){return'\u2022 '+s.title;}).join('<br>');var moreStr=missingSecs.length>6?'<br>...and '+(missingSecs.length-6)+' more':'';html+='<div class="block-notice"><strong>Photos still needed ('+missingSecs.length+' section'+(missingSecs.length>1?'s:':'s:')+'):</strong><br>'+missList+moreStr+'</div>';}
   html+='<div class="day-init-row"><label>Your initials:</label><input type="text" class="day-init-inp" id="day-init-inp" maxlength="5" placeholder="\u2014" value="'+initVal+'" oninput="saveInitials(\''+day+'\',this.value)"></div>';
   html+='<button class="sub-btn" id="day-sub-btn" '+(canSub?'':'disabled')+' onclick="submitDay(\''+day+'\')">'+( canSub?'Submit '+day+' & email photos to Jenni \u2192':'Add missing photos to unlock')+'</button><div id="day-status-msg" style="display:none;" class="status-msg"></div></div>';
