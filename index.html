@@ -304,6 +304,7 @@ var SECTIONS = [
 ];
 var SUPPLIES = ['Scrub N Bubbles','Windex','Paper towels','Toilet paper','Floor cleaner','Magic erasers','Blue mop pads washed','Clorox wipes'];
 var MAX_PHOTOS_PER_SECTION = 5;
+var MAX_PHOTOS_TOTAL = 20;    // global cap across all sections
 
 // ============================================================
 // STATE
@@ -453,7 +454,7 @@ function compressImage(file, callback) {
       canvas.width = w; canvas.height = h;
       var ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, w, h);
-      var compressed = canvas.toDataURL('image/jpeg', 0.6);
+      var compressed = canvas.toDataURL('image/jpeg', 0.4);
       console.log('[GCG] Image compressed: ' + Math.round(compressed.length/1024) + 'KB (' + w + 'x' + h + ')');
       callback(compressed);
     };
@@ -638,20 +639,57 @@ function saveInitials(day, val) {
 // ============================================================
 function addPhotos(secId, files) {
   if (daySubmitted[currentDay]) return;
+
+  // --- GLOBAL PHOTO COUNT GUARD ---
+  var totalCount = 0;
+  Object.keys(photos).forEach(function(k) { totalCount += photos[k].length; });
+
+  if (totalCount >= MAX_PHOTOS_TOTAL) {
+    alert('Maximum of ' + MAX_PHOTOS_TOTAL + ' photos reached across the whole checklist. Please remove some photos before adding more.');
+    return;
+  }
+
+  // Warn when getting close (within 3 of the global limit)
+  if (totalCount >= MAX_PHOTOS_TOTAL - 3) {
+    console.warn('[GCG] Near global photo limit: ' + totalCount + '/' + MAX_PHOTOS_TOTAL + ' photos used.');
+  }
+
+  // --- PER-SECTION GUARD ---
   var existing = getPhotos(secId);
   if (existing.length >= MAX_PHOTOS_PER_SECTION) {
     alert('Max ' + MAX_PHOTOS_PER_SECTION + ' photos per section.');
     return;
   }
-  var remaining = MAX_PHOTOS_PER_SECTION - existing.length;
+
+  var remaining = Math.min(
+    MAX_PHOTOS_PER_SECTION - existing.length,
+    MAX_PHOTOS_TOTAL - totalCount
+  );
   var fileArr = Array.prototype.slice.call(files, 0, remaining);
   var processed = 0;
+
   fileArr.forEach(function(f) {
     compressImage(f, function(base64) {
+
+      // --- STORAGE SIZE GUARD (check BEFORE pushing) ---
+      var currentSize = JSON.stringify(photos).length;
+      if (currentSize > 4.5 * 1024 * 1024) {
+        console.warn('[GCG] Storage almost full: ' + Math.round(currentSize / 1024) + 'KB used.');
+        alert('Storage almost full. Please remove some photos before adding more.');
+        processed++;
+        if (processed === fileArr.length) {
+          savePhotos();
+          refreshPhotoUI(secId);
+          updateSectionProg(secId);
+        }
+        return;
+      }
+
       if (!photos[secId]) photos[secId] = [];
       photos[secId].push(base64);
-      console.log('[GCG] Photo added to section ' + secId + '. Total: ' + photos[secId].length);
+      console.log('[GCG] Photo added to section ' + secId + '. Section total: ' + photos[secId].length + ' | Global total: ' + (totalCount + processed + 1));
       processed++;
+
       if (processed === fileArr.length) {
         savePhotos();
         refreshPhotoUI(secId);
