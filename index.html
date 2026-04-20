@@ -100,6 +100,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .photo-thumb{position:relative;width:70px;height:70px;border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border);flex-shrink:0;animation:thumbIn 0.25s ease;}
 .photo-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
 .rm-btn{position:absolute;top:2px;right:2px;width:20px;height:20px;background:rgba(0,0,0,0.7);color:#fff;border:none;border-radius:50%;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;line-height:1;}
+.photo-uploading{background:#f5f5f3;display:flex;align-items:center;justify-content:center;}
+.upload-spinner{width:22px;height:22px;border:2px solid var(--border);border-top-color:var(--navy);border-radius:50%;animation:spin 0.7s linear infinite;}
 .photo-count-lbl{font-size:11px;color:var(--text-muted);}
 .maint-card{background:var(--surface);border:1px solid var(--gold-border);border-radius:var(--radius);margin-bottom:10px;overflow:hidden;}
 .maint-head{padding:10px 13px;background:var(--gold-light);border-bottom:1px solid var(--gold-border);}
@@ -140,8 +142,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .modal-photo-label{font-size:10px;color:var(--text-muted);padding:3px 5px;text-align:center;background:#FAFAF8;}
 .modal-photo-dl{position:absolute;bottom:22px;right:2px;background:rgba(0,0,0,0.7);color:#fff;border:none;border-radius:4px;font-size:10px;cursor:pointer;padding:2px 5px;}
 .modal-email-btn{width:100%;padding:11px;background:var(--navy);color:#fff;border:none;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background 0.15s;margin-bottom:8px;}
-.modal-share-btn{width:100%;padding:11px;background:#1A6B45;color:#fff;border:none;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background 0.15s;margin-bottom:8px;}
-.modal-share-btn:hover{background:#15573a;}
 .modal-email-btn:hover{background:#162840;}
 .modal-note{font-size:11px;color:var(--text-light);text-align:center;line-height:1.4;}
 /* DAY SUBMIT PANEL */
@@ -235,11 +235,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <button class="modal-close-btn" onclick="closePhotoModal()">&#215;</button>
 </div>
 <div class="photo-modal-body">
-<p id="photo-modal-desc">Long-press each photo to save it, then attach the saved photos to the email that opens.</p>
+<p id="photo-modal-desc">Photos are saved online. Tap any photo to view it full size.</p>
 <div class="modal-photo-grid" id="photo-modal-grid"></div>
 <button class="modal-email-btn" id="photo-modal-email-btn">Open email report &rarr;</button>
-<button class="modal-share-btn" id="photo-modal-share-btn" style="display:none;">&#128257; Share photos</button>
-<p class="modal-note" id="photo-modal-note">&#128247; Save photos above, then they&rsquo;ll be ready to attach to your email.</p>
+<p class="modal-note" id="photo-modal-note">Photo links are included automatically in the email report.</p>
 </div>
 </div>
 </div>
@@ -279,11 +278,12 @@ var SECTIONS = [
 ];
 var SUPPLIES = ['Scrub N Bubbles','Windex','Paper towels','Toilet paper','Floor cleaner','Magic erasers','Blue mop pads washed','Clorox wipes'];
 var MAX_PHOTOS_PER_SECTION = 5;
-var MAX_PHOTOS_TOTAL = 20;
+var IMGUR_CLIENT_ID = 'YOUR_IMGUR_CLIENT_ID';
 var currentDay = 'Mon';
 var currentFilter = 'both';
 var tasks = {};
 var photos = {};
+var photoUploading = {};
 var supplies = {};
 var maintNotes = {};
 var initials = {};
@@ -300,13 +300,24 @@ function saveTasks(){try{var data={checks:tasks,supplies:supplies,maintNotes:mai
 function isChecked(secId,idx){return tasks[secId+'_'+idx]===true;}
 function setChecked(secId,idx,val){tasks[secId+'_'+idx]=val;}
 function loadPhotos(){try{var raw=localStorage.getItem('gcg_photos');if(raw){photos=JSON.parse(raw);}else{photos={};}}catch(e){photos={};}}
-function savePhotos(){try{localStorage.setItem('gcg_photos',JSON.stringify(photos));}catch(e){setSync('error','photo save failed');alert('Storage limit reached. Please remove some photos to continue saving.');}}
+function savePhotos(){try{localStorage.setItem('gcg_photos',JSON.stringify(photos));}catch(e){setSync('error','save failed');}}
 function getPhotos(secId){return photos[secId]||[];}
-function compressImage(file,callback){var reader=new FileReader();reader.onload=function(e){var img=new Image();img.onload=function(){var MAX_W=800;var w=img.width,h=img.height;if(w>MAX_W){h=Math.round(h*MAX_W/w);w=MAX_W;}var canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;var ctx=canvas.getContext('2d');ctx.drawImage(img,0,0,w,h);callback(canvas.toDataURL('image/jpeg',0.4));};img.src=e.target.result;};reader.readAsDataURL(file);}
-function base64ToBlob(dataUrl,type){
-var arr=dataUrl.split(','),mime=arr[0].match(/:(.*?);/)[1],bstr=atob(arr[1]),n=bstr.length,u8=new Uint8Array(n);
-while(n--){u8[n]=bstr.charCodeAt(n);}
-return new Blob([u8],{type:mime});
+function compressImage(file,callback){var reader=new FileReader();reader.onload=function(e){var img=new Image();img.onload=function(){var MAX_W=800;var w=img.width,h=img.height;if(w>MAX_W){h=Math.round(h*MAX_W/w);w=MAX_W;}var canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;var ctx=canvas.getContext('2d');ctx.drawImage(img,0,0,w,h);callback(canvas.toDataURL('image/jpeg',0.5));};img.src=e.target.result;};reader.readAsDataURL(file);}
+function uploadToImgur(base64,callback){
+var data=base64.split(',')[1];
+var xhr=new XMLHttpRequest();
+xhr.open('POST','https://api.imgur.com/3/image');
+xhr.setRequestHeader('Authorization','Client-ID '+IMGUR_CLIENT_ID);
+xhr.setRequestHeader('Content-Type','application/json');
+xhr.onload=function(){
+try{
+var res=JSON.parse(xhr.responseText);
+if(res.success){callback(null,res.data.link);}
+else{callback(res.data&&res.data.error||'Upload failed');}
+}catch(e){callback('Upload error');}
+};
+xhr.onerror=function(){callback('Network error');};
+xhr.send(JSON.stringify({image:data,type:'base64'}));
 }
 function loadFilter(){currentFilter=localStorage.getItem('gcg_user_filter')||'both';}
 function setFilter(f){currentFilter=f;localStorage.setItem('gcg_user_filter',f);document.querySelectorAll('.filter-btn').forEach(function(b){b.className='filter-btn';});var btn=document.getElementById('filter-'+f);if(btn)btn.className='filter-btn active-'+f;applyFilter();}
@@ -320,30 +331,97 @@ function totalProg(){var d=0,t=0;DAYS.forEach(function(dy){var p=dayProg(dy);d+=
 function updateProgBar(){var p=totalProg();var pct=p[1]>0?Math.round(p[0]/p[1]*100):0;var bar=document.getElementById('prog-bar');if(bar)bar.style.width=pct+'%';}
 function updateSectionProg(secId){var p=secProg(secId);var done=p[0],total=p[1],allDone=total>0&&done===total;var progEl=document.getElementById('sp_'+secId);var markBtn=document.getElementById('ma_'+secId);var card=document.getElementById('sc_'+secId);if(progEl){progEl.textContent=allDone?'\u2713 done':done+'/'+total;progEl.className='sec-prog'+(allDone?' done':'');}if(markBtn){markBtn.className='mark-all-btn'+(allDone?' all-done':'');markBtn.textContent=allDone?'\u2713 All done':'Mark all';}if(card){if(allDone){card.classList.add('sec-complete');}else{card.classList.remove('sec-complete');}}var doneBanner=document.getElementById('sdb_'+secId);if(doneBanner)doneBanner.style.display=allDone?'flex':'none';updateProgBar();renderTabs();checkAllComplete();updateSecSubmitBtn(secId);}
 function checkAllComplete(){var p=dayProg(currentDay);var allDone=p[1]>0&&p[0]===p[1];var banner=document.getElementById('all-complete-banner');if(banner)banner.style.display=allDone?'block':'none';if(allDone){var lastConfetti=parseInt(sessionStorage.getItem('gcg_confetti_day')||'0');var todayNum=new Date().getDate();if(lastConfetti!==todayNum){sessionStorage.setItem('gcg_confetti_day',todayNum);launchConfetti();}}}
-function updateSecSubmitBtn(secId){var btn=document.getElementById('ssb_'+secId);if(!btn)return;var p=secProg(secId);var hasPhoto=getPhotos(secId).length>0;var allDone=p[1]>0&&p[0]===p[1];var secInit=sectionInitials[secId]||'';var isSub=sectionSubmitted[secId];if(isSub)return;btn.disabled=!(allDone&&secInit.trim());}
+function updateSecSubmitBtn(secId){
+var btn=document.getElementById('ssb_'+secId);
+if(!btn)return;
+var p=secProg(secId);
+var uploading=(photoUploading[secId]||0)>0;
+var allDone=p[1]>0&&p[0]===p[1];
+var secInit=sectionInitials[secId]||'';
+var isSub=sectionSubmitted[secId];
+if(isSub)return;
+btn.disabled=!(allDone&&secInit.trim()&&!uploading);
+}
+
 function toggleCheck(secId,idx){if(sectionSubmitted[secId])return;setChecked(secId,idx,!isChecked(secId,idx));var row=document.getElementById('cr_'+secId+'_'+idx);if(row){var checked=isChecked(secId,idx);row.className='chk-row'+(checked?' checked just-checked':'');setTimeout(function(){if(row)row.classList.remove('just-checked');},300);}schedSave();updateSectionProg(secId);}
 function markAllComplete(secId){if(sectionSubmitted[secId])return;var s=SECTIONS.find(function(x){return x.id===secId;});if(!s)return;var allDone=secProg(secId)[0]===s.items.length;s.items.forEach(function(_,i){setChecked(secId,i,!allDone);});s.items.forEach(function(_,i){var row=document.getElementById('cr_'+secId+'_'+i);var chk=document.getElementById('chk_'+secId+'_'+i);if(row)row.className='chk-row'+(!allDone?' checked':'');if(chk)chk.checked=!allDone;});schedSave();updateSectionProg(secId);}
 function toggleSupply(idx){supplies[idx]=!supplies[idx];schedSave();}
 function saveMaint(day,val){maintNotes[day]=val;schedSave();}
 function saveInitials(day,val){initials[day]=val.toUpperCase();schedSave();}
 function saveSectionInitials(secId,val){sectionInitials[secId]=val.toUpperCase();schedSave();updateSecSubmitBtn(secId);}
-function addPhotos(secId,files){if(sectionSubmitted[secId])return;var totalCount=0;Object.keys(photos).forEach(function(k){totalCount+=photos[k].length;});if(totalCount>=MAX_PHOTOS_TOTAL){alert('Maximum of '+MAX_PHOTOS_TOTAL+' photos reached across the whole checklist. Please remove some photos before adding more.');return;}var existing=getPhotos(secId);if(existing.length>=MAX_PHOTOS_PER_SECTION){alert('Max '+MAX_PHOTOS_PER_SECTION+' photos per section.');return;}var remaining=Math.min(MAX_PHOTOS_PER_SECTION-existing.length,MAX_PHOTOS_TOTAL-totalCount);var fileArr=Array.prototype.slice.call(files,0,remaining);var processed=0;fileArr.forEach(function(f){compressImage(f,function(base64){var currentSize=JSON.stringify(photos).length;if(currentSize>4.5*1024*1024){alert('Storage almost full. Please remove some photos before adding more.');processed++;if(processed===fileArr.length){savePhotos();refreshPhotoUI(secId);updateSectionProg(secId);}return;}if(!photos[secId])photos[secId]=[];photos[secId].push(base64);processed++;if(processed===fileArr.length){savePhotos();refreshPhotoUI(secId);updateSectionProg(secId);}});});}
-function removePhoto(secId,idx){if(!photos[secId])return;photos[secId].splice(idx,1);if(photos[secId].length===0)delete photos[secId];savePhotos();refreshPhotoUI(secId);updateSectionProg(secId);}
-function refreshPhotoUI(secId){var thumbs=document.getElementById('pt_'+secId);var footer=document.getElementById('pf_'+secId);var lbl=document.getElementById('pl_'+secId);var card=document.getElementById('sc_'+secId);var countLbl=document.getElementById('pc_'+secId);var ph=getPhotos(secId);var hasPhoto=ph.length>0;if(thumbs)thumbs.innerHTML=buildThumbsHTML(secId);if(footer)footer.className='photo-footer '+(hasPhoto?'pf-has':'pf-needs');if(lbl){lbl.className='pf-lbl '+(hasPhoto?'lbl-has':'lbl-needs');lbl.textContent=hasPhoto?'\u2713 '+ph.length+' photo'+(ph.length>1?'s':'')+' attached':'\u26A0 Photo required to complete this section';}if(card){card.classList.remove('needs-photo','has-photo');card.classList.add(hasPhoto?'has-photo':'needs-photo');}if(countLbl)countLbl.textContent=ph.length+'/'+MAX_PHOTOS_PER_SECTION;updateSecSubmitBtn(secId);}
-function buildThumbsHTML(secId){return getPhotos(secId).map(function(b64,i){return '<div class="photo-thumb"><img src="'+b64+'" alt="photo '+(i+1)+'"><button class="rm-btn" onclick="removePhoto(\''+secId+'\','+i+')">&#215;</button></div>';}).join('');}
+function addPhotos(secId,files){
+var existing=getPhotos(secId);
+if(existing.length>=MAX_PHOTOS_PER_SECTION){alert('Max '+MAX_PHOTOS_PER_SECTION+' photos per section.');return;}
+var remaining=MAX_PHOTOS_PER_SECTION-existing.length;
+var fileArr=Array.prototype.slice.call(files,0,remaining);
+fileArr.forEach(function(f){
+if(!photoUploading[secId])photoUploading[secId]=0;
+photoUploading[secId]++;
+refreshPhotoUI(secId);
+compressImage(f,function(base64){
+uploadToImgur(base64,function(err,url){
+photoUploading[secId]=Math.max(0,(photoUploading[secId]||1)-1);
+if(err){
+alert('Photo upload failed: '+err+'. Check your Imgur Client ID.');
+refreshPhotoUI(secId);
+return;
+}
+if(!photos[secId])photos[secId]=[];
+photos[secId].push(url);
+savePhotos();
+refreshPhotoUI(secId);
+updateSectionProg(secId);
+});
+});
+});
+}
+function removePhoto(secId,idx){
+if(!photos[secId])return;
+photos[secId].splice(idx,1);
+if(photos[secId].length===0)delete photos[secId];
+savePhotos();
+refreshPhotoUI(secId);
+updateSectionProg(secId);
+}
+function refreshPhotoUI(secId){
+var thumbs=document.getElementById('pt_'+secId);
+var footer=document.getElementById('pf_'+secId);
+var lbl=document.getElementById('pl_'+secId);
+var card=document.getElementById('sc_'+secId);
+var countLbl=document.getElementById('pc_'+secId);
+var ph=getPhotos(secId);
+var uploading=(photoUploading[secId]||0)>0;
+var hasPhoto=ph.length>0||uploading;
+if(thumbs)thumbs.innerHTML=buildThumbsHTML(secId);
+if(footer)footer.className='photo-footer '+(ph.length>0?'pf-has':uploading?'pf-neutral':'pf-needs');
+if(lbl){
+lbl.className='pf-lbl '+(ph.length>0?'lbl-has':uploading?'lbl-neutral':'lbl-needs');
+lbl.textContent=uploading?'\u23F3 Uploading photo...':ph.length>0?'\u2713 '+ph.length+' photo'+(ph.length>1?'s':'')+' uploaded':'\u26A0 Photo required to complete this section';
+}
+if(card){
+card.classList.remove('needs-photo','has-photo');
+card.classList.add(ph.length>0?'has-photo':'needs-photo');
+}
+if(countLbl)countLbl.textContent=ph.length+'/'+MAX_PHOTOS_PER_SECTION;
+updateSecSubmitBtn(secId);
+}
+function buildThumbsHTML(secId){
+var html='';
+var uploading=photoUploading[secId]||0;
+getPhotos(secId).forEach(function(url,i){
+html+='<div class="photo-thumb"><img src="'+url+'" alt="photo '+(i+1)+'">'+
+'<button class="rm-btn" onclick="removePhoto(\''+ secId +'\','+i+')">&#215;</button></div>';
+});
+for(var u=0;u<uploading;u++){
+html+='<div class="photo-thumb photo-uploading"><div class="upload-spinner"></div></div>';
+}
+return html;
+}
+
 function launchConfetti(){var colors=['#E8A020','#1A6B45','#1D3557','#7B2D00','#1A4A7A','#7ECBA8','#F0C060'];for(var i=0;i<60;i++){(function(i){setTimeout(function(){var el=document.createElement('div');el.className='confetti-piece';el.style.cssText=['left:'+(Math.random()*100)+'vw','width:'+(6+Math.random()*8)+'px','height:'+(10+Math.random()*8)+'px','background:'+colors[Math.floor(Math.random()*colors.length)],'animation-duration:'+(1.5+Math.random()*2)+'s','animation-delay:0s','opacity:1'].join(';');document.body.appendChild(el);setTimeout(function(){el.remove();},4000);},i*30);})(i);}}
 function confirmReset(){if(confirm('Reset today? This will clear all checkboxes and photos for today.')){localStorage.removeItem('gcg_tasks');localStorage.removeItem('gcg_photos');localStorage.setItem('gcg_last_date',getToday());tasks={};photos={};supplies={};maintNotes={};initials={};daySubmitted={};daySubmittedAt={};sectionSubmitted={};sectionSubmittedAt={};sectionInitials={};renderSections();renderTabs();updateProgBar();setSync('synced','reset');}}
 // PHOTO MODAL
 var _modalEmailFn = null;
-function sharePhotos(secId){
-var ph=getPhotos(secId);
-if(!ph.length||!navigator.share)return;
-var files=ph.map(function(b64,i){
-var blob=base64ToBlob(b64,'image/jpeg');
-return new File([blob],'gcg-photo-'+(i+1)+'.jpg',{type:'image/jpeg'});
-});
-navigator.share({files:files,title:'GCG Cleaning Photos'}).catch(function(){});
-}
 function openPhotoModal(secId, emailFn){
 var sec=SECTIONS.find(function(x){return x.id===secId;});
 var ph=getPhotos(secId);
@@ -351,21 +429,16 @@ var modal=document.getElementById('photo-modal');
 var title=document.getElementById('photo-modal-title');
 var grid=document.getElementById('photo-modal-grid');
 var emailBtn=document.getElementById('photo-modal-email-btn');
-var shareBtn=document.getElementById('photo-modal-share-btn');
 var desc=document.getElementById('photo-modal-desc');
 var note=document.getElementById('photo-modal-note');
 if(!modal)return;
-title.textContent=(sec?sec.title:'Section')+' — Photos & Report';
-var canShare=ph.length>0&&navigator.canShare&&navigator.canShare({files:[new File([base64ToBlob(ph[0],'image/jpeg')],'test.jpg',{type:'image/jpeg'})]});
-if(shareBtn){shareBtn.style.display=canShare?'block':'none';shareBtn.onclick=function(){sharePhotos(secId);};}
+title.textContent=(sec?sec.title:'Section')+' — Photos';
 if(ph.length>0){
-desc.textContent=canShare?'Tap \"Share photos\" to send them directly, or save them and attach to the email report.':'Save these photos to your device first, then tap the button below to open the email report.';
-note.textContent=canShare?'Tip: Use \"Share photos\" to attach them directly via email or Messages.':'Tip: long-press each photo on mobile to save, or right-click on desktop.';
-grid.innerHTML=ph.map(function(b64,i){
-var blobUrl=URL.createObjectURL(base64ToBlob(b64,'image/jpeg'));
+desc.textContent='Photos uploaded successfully. Tap a photo to open it, or send the email report with photo links.';
+note.textContent='All photos are saved online — links are included in the email report.';
+grid.innerHTML=ph.map(function(url,i){
 return '<div class="modal-photo-item">'+
-'<img src="'+b64+'" alt="Photo '+(i+1)+'">'+
-'<a href="'+blobUrl+'" download="gcg-photo-'+(i+1)+'.jpg" class="modal-photo-dl">&#8595; Save</a>'+
+'<a href="'+url+'" target="_blank"><img src="'+url+'" alt="Photo '+(i+1)+'"></a>'+
 '<div class="modal-photo-label">Photo '+(i+1)+'/'+ph.length+'</div>'+
 '</div>';
 }).join('');
@@ -374,13 +447,12 @@ emailBtn.textContent='Open email report \u2192';
 desc.textContent='No photos for this section. The email report will open now.';
 grid.innerHTML='';
 emailBtn.textContent='Open email report \u2192';
-note.textContent='Add photos to this section before submitting to include them in your records.';
+note.textContent='Add photos to this section before submitting.';
 }
 _modalEmailFn=emailFn;
 emailBtn.onclick=function(){if(_modalEmailFn)_modalEmailFn();closePhotoModal();};
 modal.style.display='flex';
 }
-
 function closePhotoModal(e){
 if(e&&e.target!==document.getElementById('photo-modal'))return;
 document.getElementById('photo-modal').style.display='none';
@@ -393,29 +465,29 @@ var sec=SECTIONS.find(function(x){return x.id===secId;});
 if(!sec)return{subject:'',body:''};
 var today=getToday();
 var day=currentDay;
-var init=sectionInitials[secId]||initials[day]||'—';
+var init=sectionInitials[secId]||initials[day]||'\u2014';
 var p=secProg(secId);
-var photoCount=getPhotos(secId).length;
+var ph=getPhotos(secId);
 var lines=[
-'GCG CLEANING — '+sec.title.toUpperCase(),
+'GCG CLEANING \u2014 '+sec.title.toUpperCase(),
 'Date: '+today,
-'Day: '+day+' — '+DAY_META[day].label,
+'Day: '+day+' \u2014 '+DAY_META[day].label,
 'Section: '+sec.title,
 'Coach: '+sec.coach.charAt(0).toUpperCase()+sec.coach.slice(1),
 'Initials: '+init,
 'Progress: '+p[0]+'/'+p[1]+' tasks completed',
-'Photos attached: '+photoCount,
 ''
 ];
 sec.items.forEach(function(item,i){
 lines.push((isChecked(secId,i)?'[x] ':'[ ] ')+item);
 });
-if(photoCount>0){
+if(ph.length>0){
 lines.push('');
-lines.push('NOTE: '+photoCount+' photo(s) were saved from the checklist app. Please attach them to this email.');
+lines.push('PHOTOS ('+ph.length+'):');
+ph.forEach(function(url,i){lines.push('  Photo '+(i+1)+': '+url);});
 }
 return{
-subject:'GCG Clean — '+sec.title+' — '+day+' '+today,
+subject:'GCG Clean \u2014 '+sec.title+' \u2014 '+day+' '+today,
 body:lines.join('\n')
 };
 }
@@ -424,58 +496,53 @@ function submitSection(secId){
 var secInit=sectionInitials[secId]||'';
 if(!secInit.trim()){alert('Please enter your initials for this section first.');return;}
 var emailData=buildSectionEmailBody(secId);
-var ph=getPhotos(secId);
-var doEmail=function(){
 var subject=encodeURIComponent(emailData.subject);
 var body=encodeURIComponent(emailData.body);
+var ph=getPhotos(secId);
+if(ph.length>0){
+openPhotoModal(secId,function(){
 window.open('mailto:jenni@goldcoastgymnastics.us?subject='+subject+'&body='+body,'_blank');
 sectionSubmitted[secId]=true;
 sectionSubmittedAt[secId]=getToday();
 saveTasks();
 renderSections();
 renderTabs();
-};
-if(ph.length>0){
-openPhotoModal(secId,doEmail);
+});
 }else{
-doEmail();
+window.open('mailto:jenni@goldcoastgymnastics.us?subject='+subject+'&body='+body,'_blank');
+sectionSubmitted[secId]=true;
+sectionSubmittedAt[secId]=getToday();
+saveTasks();
+renderSections();
+renderTabs();
 }
 }
 // FULL DAY REPORT
 function sendReport(){
-var today=getToday();var week=getWeekLabel();var day=currentDay;var p=dayProg(day);var init=initials[day]||'—';
-var lines=['GCG CLEANING REPORT','Date: '+today,'Week: '+week,'Day: '+day+' — '+DAY_META[day].label,'Coaches: '+DAY_META[day].coaches.join(' + '),'Initials: '+init,'Progress: '+p[0]+'/'+p[1]+' tasks completed',''];
-SECTIONS.filter(function(s){return s.days.indexOf(day)>-1&&!s.isMaint&&s.items.length;}).forEach(function(s){var sp=secProg(s.id);var photoCount=getPhotos(s.id).length;if(sp[0]===sp[1]){lines.push('[\u2713] '+s.title+' ('+photoCount+' photo'+(photoCount!==1?'s':'')+')'); }else{var missed=s.items.filter(function(_,i){return!isChecked(s.id,i);});lines.push('['+sp[0]+'/'+sp[1]+'] '+s.title);missed.forEach(function(m){lines.push('  - '+m);});}});
+var today=getToday();var week=getWeekLabel();var day=currentDay;var p=dayProg(day);var init=initials[day]||'\u2014';
+var lines=['GCG CLEANING REPORT','Date: '+today,'Week: '+week,'Day: '+day+' \u2014 '+DAY_META[day].label,'Coaches: '+DAY_META[day].coaches.join(' + '),'Initials: '+init,'Progress: '+p[0]+'/'+p[1]+' tasks completed',''];
+SECTIONS.filter(function(s){return s.days.indexOf(day)>-1&&!s.isMaint&&s.items.length;}).forEach(function(s){
+var sp=secProg(s.id);
+var ph=getPhotos(s.id);
+if(sp[0]===sp[1]){
+lines.push('[\u2713] '+s.title);
+}else{
+var missed=s.items.filter(function(_,i){return!isChecked(s.id,i);});
+lines.push('['+sp[0]+'/'+sp[1]+'] '+s.title);
+missed.forEach(function(m){lines.push('  - '+m);});
+}
+if(ph.length>0){
+lines.push('  Photos ('+ph.length+'):');
+ph.forEach(function(url,i){lines.push('    Photo '+(i+1)+': '+url);});
+}
+});
 var maint=maintNotes[day];if(maint&&maint.trim()){lines.push('');lines.push('MAINTENANCE NOTES:');lines.push(maint.trim());}
 var supList=SUPPLIES.filter(function(_,i){return supplies[i];});if(supList.length){lines.push('');lines.push('SUPPLIES NEEDED: '+supList.join(', '));}
-var allPhotos=[];SECTIONS.filter(function(s){return s.days.indexOf(day)>-1&&!s.isMaint;}).forEach(function(s){var ph=getPhotos(s.id);if(ph.length>0){lines.push('');lines.push('NOTE: '+ph.length+' photo(s) attached from '+s.title+'. Please save from app and attach.');}allPhotos=allPhotos.concat(ph);});
-var subject=encodeURIComponent('GCG Cleaning Report — '+day+' '+today);var body=encodeURIComponent(lines.join('\n'));
-if(allPhotos.length>0){
-var allSections=SECTIONS.filter(function(s){return s.days.indexOf(day)>-1&&!s.isMaint&&getPhotos(s.id).length>0;});
-var firstSec=allSections.length>0?allSections[0].id:null;
-var doEmail=function(){window.open('mailto:jenni@goldcoastgymnastics.us?subject='+subject+'&body='+body,'_blank');};
-if(firstSec){
-// Show all photos from the day in the modal
-var modal=document.getElementById('photo-modal');
-var title=document.getElementById('photo-modal-title');
-var grid=document.getElementById('photo-modal-grid');
-var emailBtn=document.getElementById('photo-modal-email-btn');
-var desc=document.getElementById('photo-modal-desc');
-var note=document.getElementById('photo-modal-note');
-title.textContent='Day Report — All Photos';
-desc.textContent='Save these photos to your device first, then tap the button below to open the email.';
-note.textContent='Tip: long-press each photo on mobile to save, or right-click on desktop.';
-var allPhotoHTML='';
-SECTIONS.filter(function(s){return s.days.indexOf(day)>-1&&!s.isMaint;}).forEach(function(s){var ph=getPhotos(s.id);if(ph.length>0){allPhotoHTML+='<div style="grid-column:1/-1;font-size:11px;font-weight:600;color:var(--text-muted);padding:4px 0 2px;">'+s.title+'</div>';allPhotoHTML+=ph.map(function(b64,i){var blobUrl=URL.createObjectURL(base64ToBlob(b64,'image/jpeg'));return '<div class="modal-photo-item"><img src="'+b64+'" alt="'+s.title+' photo '+(i+1)+'"><a href="'+blobUrl+'" download="gcg-'+s.id+'-photo-'+(i+1)+'.jpg" class="modal-photo-dl">&#8595; Save</a><div class="modal-photo-label">'+(i+1)+'/'+ph.length+'</div></div>';}).join('');}});
-grid.innerHTML=allPhotoHTML;
-emailBtn.textContent='Open full day email report \u2192';
-if(shareBtn){var allBlobFiles=[];SECTIONS.filter(function(s){return s.days.indexOf(day)>-1&&!s.isMaint;}).forEach(function(s){var ph2=getPhotos(s.id);ph2.forEach(function(b64,i){allBlobFiles.push(new File([base64ToBlob(b64,'image/jpeg')],'gcg-'+s.id+'-photo-'+(i+1)+'.jpg',{type:'image/jpeg'}));});});var canShareDay=allBlobFiles.length>0&&navigator.canShare&&navigator.canShare({files:allBlobFiles});shareBtn.style.display=canShareDay?'block':'none';shareBtn.onclick=function(){navigator.share({files:allBlobFiles,title:'GCG Cleaning Photos - '+day}).catch(function(){});};}
-_modalEmailFn=doEmail;
-emailBtn.onclick=function(){doEmail();closePhotoModal();};
-modal.style.display='flex';
-}else{doEmail();}
-}else{window.open('mailto:jenni@goldcoastgymnastics.us?subject='+subject+'&body='+body,'_blank');}
+var subject=encodeURIComponent('GCG Cleaning Report \u2014 '+day+' '+today);
+var body=encodeURIComponent(lines.join('\n'));
+window.open('mailto:jenni@goldcoastgymnastics.us?subject='+subject+'&body='+body,'_blank');
 }
+
 function switchDay(d){currentDay=d;renderTabs();renderSections();applyFilter();sessionStorage.removeItem('gcg_confetti_day');}
 function renderTabs(){var html='';DAYS.forEach(function(d,i){var p=dayProg(d);var allDone=p[1]>0&&p[0]===p[1];var sub=daySubmitted[d];var dot=(sub||allDone)?'<span class="tab-dot"></span>':'';var cnt=(!allDone&&p[1]>0)?'<span class="tab-ct">'+p[0]+'/'+p[1]+'</span>':'';var cls='day-tab'+(d===currentDay?' active':'');html+='<button class="'+cls+'" onclick="switchDay(DAYS['+i+'])">'+d+dot+cnt+'</button>';});var el=document.getElementById('day-tabs');if(el)el.innerHTML=html;}
 function pill(c){return '<span class="pill '+c+'">'+c.charAt(0).toUpperCase()+c.slice(1)+'</span>';}
