@@ -196,6 +196,17 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 @media(max-width:360px){
 .day-tab{padding:11px 11px;font-size:12px;}
 }
+.token-btn{background:none;border:none;color:rgba(255,255,255,0.7);font-size:16px;cursor:pointer;padding:2px 4px;border-radius:4px;line-height:1;flex-shrink:0;}
+.token-btn:hover{color:#fff;background:rgba(255,255,255,0.1);}
+.token-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:2000;display:flex;align-items:center;justify-content:center;padding:16px;}
+.token-modal{background:#fff;border-radius:10px;max-width:420px;width:100%;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,0.3);}
+.token-modal h3{font-size:15px;font-weight:600;margin-bottom:8px;}
+.token-modal p{font-size:12px;color:#7A7870;margin-bottom:14px;line-height:1.5;}
+.token-inp{width:100%;border:1px solid #E4E1D8;border-radius:6px;padding:9px 12px;font-size:13px;font-family:'DM Mono',monospace;outline:none;margin-bottom:12px;}
+.token-inp:focus{border-color:#1D3557;}
+.token-save-btn{width:100%;padding:11px;background:#1D3557;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.token-save-btn:hover{background:#162840;}
+.token-cancel-btn{width:100%;padding:8px;background:none;border:none;color:#7A7870;font-size:12px;cursor:pointer;margin-top:6px;font-family:'DM Sans',sans-serif;}
 </style>
 </head>
 <body>
@@ -207,6 +218,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 </div>
 <div class="top-bar-right">
 <span class="week-label" id="week-label"></span>
+<button class="token-btn" id="token-btn" onclick="showTokenSetup()" title="Set GitHub token for photo uploads">&#128273;</button>
 <span class="sync-dot synced" id="sync-dot">&#9679; synced</span>
 </div>
 </div>
@@ -278,7 +290,9 @@ var SECTIONS = [
 ];
 var SUPPLIES = ['Scrub N Bubbles','Windex','Paper towels','Toilet paper','Floor cleaner','Magic erasers','Blue mop pads washed','Clorox wipes'];
 var MAX_PHOTOS_PER_SECTION = 5;
-var IMGUR_CLIENT_ID = '546c25a59c58ad7';
+var GITHUB_REPO = 'jenni-pixel/gcg-cleaning-checklist';
+var GITHUB_BRANCH = 'main';
+var GITHUB_TOKEN = localStorage.getItem('gcg_gh_token') || '';
 var currentDay = 'Mon';
 var currentFilter = 'both';
 var tasks = {};
@@ -303,21 +317,34 @@ function loadPhotos(){try{var raw=localStorage.getItem('gcg_photos');if(raw){pho
 function savePhotos(){try{localStorage.setItem('gcg_photos',JSON.stringify(photos));}catch(e){setSync('error','save failed');}}
 function getPhotos(secId){return photos[secId]||[];}
 function compressImage(file,callback){var reader=new FileReader();reader.onload=function(e){var img=new Image();img.onload=function(){var MAX_W=800;var w=img.width,h=img.height;if(w>MAX_W){h=Math.round(h*MAX_W/w);w=MAX_W;}var canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;var ctx=canvas.getContext('2d');ctx.drawImage(img,0,0,w,h);callback(canvas.toDataURL('image/jpeg',0.5));};img.src=e.target.result;};reader.readAsDataURL(file);}
-function uploadToImgur(base64,callback){
-var data=base64.split(',')[1];
-var xhr=new XMLHttpRequest();
-xhr.open('POST','https://api.imgur.com/3/image');
-xhr.setRequestHeader('Authorization','Client-ID '+IMGUR_CLIENT_ID);
-xhr.setRequestHeader('Content-Type','application/json');
-xhr.onload=function(){
-try{
-var res=JSON.parse(xhr.responseText);
-if(res.success){callback(null,res.data.link);}
-else{callback(res.data&&res.data.error||'Upload failed');}
-}catch(e){callback('Upload error');}
-};
-xhr.onerror=function(){callback('Network error');};
-xhr.send(JSON.stringify({image:data,type:'base64'}));
+function uploadToGitHub(base64,callback){
+var token=localStorage.getItem('gcg_gh_token')||'';
+if(!token){callback('No GitHub token set. Tap the key icon in the top bar to set it.');return;}
+var imgData=base64.split(',')[1];
+var now=new Date();
+var dateStr=now.getFullYear()+'-'+(now.getMonth()+1<10?'0':'')+(now.getMonth()+1)+'-'+(now.getDate()<10?'0':'')+now.getDate();
+var ts=now.getTime();
+var path='photos/'+dateStr+'/photo_'+ts+'.jpg';
+var apiUrl='https://api.github.com/repos/'+GITHUB_REPO+'/contents/'+path;
+fetch(apiUrl,{
+method:'PUT',
+headers:{
+'Authorization':'token '+token,
+'Content-Type':'application/json',
+'Accept':'application/vnd.github.v3+json'
+},
+body:JSON.stringify({message:'Add cleaning photo '+dateStr,content:imgData,branch:GITHUB_BRANCH})
+}).then(function(r){return r.json();}).then(function(res){
+if(res.content&&res.content.download_url){
+callback(null,res.content.download_url);
+}else if(res.content){
+callback(null,'https://raw.githubusercontent.com/'+GITHUB_REPO+'/'+GITHUB_BRANCH+'/'+path);
+}else if(res.message&&res.message.indexOf('Bad credentials')>-1){
+callback('Invalid GitHub token. Tap the key icon to update it.');
+}else{
+callback(res.message||'Upload failed');
+}
+}).catch(function(e){callback('Network error: '+e.message);});
 }
 function loadFilter(){currentFilter=localStorage.getItem('gcg_user_filter')||'both';}
 function setFilter(f){currentFilter=f;localStorage.setItem('gcg_user_filter',f);document.querySelectorAll('.filter-btn').forEach(function(b){b.className='filter-btn';});var btn=document.getElementById('filter-'+f);if(btn)btn.className='filter-btn active-'+f;applyFilter();}
@@ -359,7 +386,7 @@ if(!photoUploading[secId])photoUploading[secId]=0;
 photoUploading[secId]++;
 refreshPhotoUI(secId);
 compressImage(f,function(base64){
-uploadToImgur(base64,function(err,url){
+uploadToGitHub(base64,function(err,url){
 photoUploading[secId]=Math.max(0,(photoUploading[secId]||1)-1);
 if(err){
 alert('Photo upload failed: '+err+'. Check your Imgur Client ID.');
@@ -687,6 +714,43 @@ if(activeBtn)activeBtn.className='filter-btn active-'+currentFilter;
 renderTabs();
 renderSections();
 })();
+</script>
+
+<!-- TOKEN SETUP MODAL -->
+<div id="token-modal" class="token-modal-overlay" style="display:none;" onclick="closeTokenModal(event)">
+<div class="token-modal" onclick="event.stopPropagation()">
+<h3>&#128273; GitHub Photo Token</h3>
+<p>Enter your GitHub personal access token to enable photo uploads directly to your repository. The token is saved only on this device.</p>
+<input type="password" class="token-inp" id="token-inp" placeholder="ghp_xxxxxxxxxxxx" autocomplete="off">
+<button class="token-save-btn" onclick="saveToken()">Save token</button>
+<button class="token-cancel-btn" onclick="closeTokenModal()">Cancel</button>
+</div>
+</div>
+<script>
+function showTokenSetup(){
+var inp=document.getElementById('token-inp');
+var existing=localStorage.getItem('gcg_gh_token')||'';
+if(inp)inp.value=existing;
+document.getElementById('token-modal').style.display='flex';
+setTimeout(function(){if(inp)inp.focus();},100);
+}
+function closeTokenModal(e){
+if(e&&e.target!==document.getElementById('token-modal'))return;
+document.getElementById('token-modal').style.display='none';
+}
+function saveToken(){
+var val=(document.getElementById('token-inp').value||'').trim();
+if(!val){alert('Please enter a token.');return;}
+localStorage.setItem('gcg_gh_token',val);
+document.getElementById('token-modal').style.display='none';
+setSync('synced','token saved');
+}
+// Auto-prompt if no token set
+window.addEventListener('load',function(){
+if(!localStorage.getItem('gcg_gh_token')){
+setTimeout(showTokenSetup,1200);
+}
+});
 </script>
 </body>
 </html>
