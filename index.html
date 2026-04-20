@@ -140,6 +140,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .modal-photo-label{font-size:10px;color:var(--text-muted);padding:3px 5px;text-align:center;background:#FAFAF8;}
 .modal-photo-dl{position:absolute;bottom:22px;right:2px;background:rgba(0,0,0,0.7);color:#fff;border:none;border-radius:4px;font-size:10px;cursor:pointer;padding:2px 5px;}
 .modal-email-btn{width:100%;padding:11px;background:var(--navy);color:#fff;border:none;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background 0.15s;margin-bottom:8px;}
+.modal-share-btn{width:100%;padding:11px;background:#1A6B45;color:#fff;border:none;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background 0.15s;margin-bottom:8px;}
+.modal-share-btn:hover{background:#15573a;}
 .modal-email-btn:hover{background:#162840;}
 .modal-note{font-size:11px;color:var(--text-light);text-align:center;line-height:1.4;}
 /* DAY SUBMIT PANEL */
@@ -236,6 +238,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <p id="photo-modal-desc">Long-press each photo to save it, then attach the saved photos to the email that opens.</p>
 <div class="modal-photo-grid" id="photo-modal-grid"></div>
 <button class="modal-email-btn" id="photo-modal-email-btn">Open email report &rarr;</button>
+<button class="modal-share-btn" id="photo-modal-share-btn" style="display:none;">&#128257; Share photos</button>
 <p class="modal-note" id="photo-modal-note">&#128247; Save photos above, then they&rsquo;ll be ready to attach to your email.</p>
 </div>
 </div>
@@ -300,6 +303,11 @@ function loadPhotos(){try{var raw=localStorage.getItem('gcg_photos');if(raw){pho
 function savePhotos(){try{localStorage.setItem('gcg_photos',JSON.stringify(photos));}catch(e){setSync('error','photo save failed');alert('Storage limit reached. Please remove some photos to continue saving.');}}
 function getPhotos(secId){return photos[secId]||[];}
 function compressImage(file,callback){var reader=new FileReader();reader.onload=function(e){var img=new Image();img.onload=function(){var MAX_W=800;var w=img.width,h=img.height;if(w>MAX_W){h=Math.round(h*MAX_W/w);w=MAX_W;}var canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;var ctx=canvas.getContext('2d');ctx.drawImage(img,0,0,w,h);callback(canvas.toDataURL('image/jpeg',0.4));};img.src=e.target.result;};reader.readAsDataURL(file);}
+function base64ToBlob(dataUrl,type){
+var arr=dataUrl.split(','),mime=arr[0].match(/:(.*?);/)[1],bstr=atob(arr[1]),n=bstr.length,u8=new Uint8Array(n);
+while(n--){u8[n]=bstr.charCodeAt(n);}
+return new Blob([u8],{type:mime});
+}
 function loadFilter(){currentFilter=localStorage.getItem('gcg_user_filter')||'both';}
 function setFilter(f){currentFilter=f;localStorage.setItem('gcg_user_filter',f);document.querySelectorAll('.filter-btn').forEach(function(b){b.className='filter-btn';});var btn=document.getElementById('filter-'+f);if(btn)btn.className='filter-btn active-'+f;applyFilter();}
 function applyFilter(){var secs=document.querySelectorAll('.sec-card[data-coach]');secs.forEach(function(el){var coach=el.getAttribute('data-coach');if(currentFilter==='both'||coach===currentFilter||!coach){el.classList.remove('sec-hidden');}else{el.classList.add('sec-hidden');}});}
@@ -327,6 +335,15 @@ function launchConfetti(){var colors=['#E8A020','#1A6B45','#1D3557','#7B2D00','#
 function confirmReset(){if(confirm('Reset today? This will clear all checkboxes and photos for today.')){localStorage.removeItem('gcg_tasks');localStorage.removeItem('gcg_photos');localStorage.setItem('gcg_last_date',getToday());tasks={};photos={};supplies={};maintNotes={};initials={};daySubmitted={};daySubmittedAt={};sectionSubmitted={};sectionSubmittedAt={};sectionInitials={};renderSections();renderTabs();updateProgBar();setSync('synced','reset');}}
 // PHOTO MODAL
 var _modalEmailFn = null;
+function sharePhotos(secId){
+var ph=getPhotos(secId);
+if(!ph.length||!navigator.share)return;
+var files=ph.map(function(b64,i){
+var blob=base64ToBlob(b64,'image/jpeg');
+return new File([blob],'gcg-photo-'+(i+1)+'.jpg',{type:'image/jpeg'});
+});
+navigator.share({files:files,title:'GCG Cleaning Photos'}).catch(function(){});
+}
 function openPhotoModal(secId, emailFn){
 var sec=SECTIONS.find(function(x){return x.id===secId;});
 var ph=getPhotos(secId);
@@ -334,17 +351,21 @@ var modal=document.getElementById('photo-modal');
 var title=document.getElementById('photo-modal-title');
 var grid=document.getElementById('photo-modal-grid');
 var emailBtn=document.getElementById('photo-modal-email-btn');
+var shareBtn=document.getElementById('photo-modal-share-btn');
 var desc=document.getElementById('photo-modal-desc');
 var note=document.getElementById('photo-modal-note');
 if(!modal)return;
 title.textContent=(sec?sec.title:'Section')+' — Photos & Report';
+var canShare=ph.length>0&&navigator.canShare&&navigator.canShare({files:[new File([base64ToBlob(ph[0],'image/jpeg')],'test.jpg',{type:'image/jpeg'})]});
+if(shareBtn){shareBtn.style.display=canShare?'block':'none';shareBtn.onclick=function(){sharePhotos(secId);};}
 if(ph.length>0){
-desc.textContent='Save these photos to your device first, then tap the button to open the email report.';
-note.textContent='Tip: long-press each photo on mobile to save, or right-click on desktop.';
+desc.textContent=canShare?'Tap \"Share photos\" to send them directly, or save them and attach to the email report.':'Save these photos to your device first, then tap the button below to open the email report.';
+note.textContent=canShare?'Tip: Use \"Share photos\" to attach them directly via email or Messages.':'Tip: long-press each photo on mobile to save, or right-click on desktop.';
 grid.innerHTML=ph.map(function(b64,i){
+var blobUrl=URL.createObjectURL(base64ToBlob(b64,'image/jpeg'));
 return '<div class="modal-photo-item">'+
 '<img src="'+b64+'" alt="Photo '+(i+1)+'">'+
-'<a href="'+b64+'" download="gcg-photo-'+(i+1)+'.jpg" class="modal-photo-dl">&#8595; Save</a>'+
+'<a href="'+blobUrl+'" download="gcg-photo-'+(i+1)+'.jpg" class="modal-photo-dl">&#8595; Save</a>'+
 '<div class="modal-photo-label">Photo '+(i+1)+'/'+ph.length+'</div>'+
 '</div>';
 }).join('');
@@ -359,6 +380,7 @@ _modalEmailFn=emailFn;
 emailBtn.onclick=function(){if(_modalEmailFn)_modalEmailFn();closePhotoModal();};
 modal.style.display='flex';
 }
+
 function closePhotoModal(e){
 if(e&&e.target!==document.getElementById('photo-modal'))return;
 document.getElementById('photo-modal').style.display='none';
@@ -444,9 +466,10 @@ title.textContent='Day Report — All Photos';
 desc.textContent='Save these photos to your device first, then tap the button below to open the email.';
 note.textContent='Tip: long-press each photo on mobile to save, or right-click on desktop.';
 var allPhotoHTML='';
-SECTIONS.filter(function(s){return s.days.indexOf(day)>-1&&!s.isMaint;}).forEach(function(s){var ph=getPhotos(s.id);if(ph.length>0){allPhotoHTML+='<div style="grid-column:1/-1;font-size:11px;font-weight:600;color:var(--text-muted);padding:4px 0 2px;">'+s.title+'</div>';allPhotoHTML+=ph.map(function(b64,i){return '<div class="modal-photo-item"><img src="'+b64+'" alt="'+s.title+' photo '+(i+1)+'"><a href="'+b64+'" download="gcg-'+s.id+'-photo-'+(i+1)+'.jpg" class="modal-photo-dl">&#8595; Save</a><div class="modal-photo-label">'+(i+1)+'/'+ph.length+'</div></div>';}).join('');}});
+SECTIONS.filter(function(s){return s.days.indexOf(day)>-1&&!s.isMaint;}).forEach(function(s){var ph=getPhotos(s.id);if(ph.length>0){allPhotoHTML+='<div style="grid-column:1/-1;font-size:11px;font-weight:600;color:var(--text-muted);padding:4px 0 2px;">'+s.title+'</div>';allPhotoHTML+=ph.map(function(b64,i){var blobUrl=URL.createObjectURL(base64ToBlob(b64,'image/jpeg'));return '<div class="modal-photo-item"><img src="'+b64+'" alt="'+s.title+' photo '+(i+1)+'"><a href="'+blobUrl+'" download="gcg-'+s.id+'-photo-'+(i+1)+'.jpg" class="modal-photo-dl">&#8595; Save</a><div class="modal-photo-label">'+(i+1)+'/'+ph.length+'</div></div>';}).join('');}});
 grid.innerHTML=allPhotoHTML;
 emailBtn.textContent='Open full day email report \u2192';
+if(shareBtn){var allBlobFiles=[];SECTIONS.filter(function(s){return s.days.indexOf(day)>-1&&!s.isMaint;}).forEach(function(s){var ph2=getPhotos(s.id);ph2.forEach(function(b64,i){allBlobFiles.push(new File([base64ToBlob(b64,'image/jpeg')],'gcg-'+s.id+'-photo-'+(i+1)+'.jpg',{type:'image/jpeg'}));});});var canShareDay=allBlobFiles.length>0&&navigator.canShare&&navigator.canShare({files:allBlobFiles});shareBtn.style.display=canShareDay?'block':'none';shareBtn.onclick=function(){navigator.share({files:allBlobFiles,title:'GCG Cleaning Photos - '+day}).catch(function(){});};}
 _modalEmailFn=doEmail;
 emailBtn.onclick=function(){doEmail();closePhotoModal();};
 modal.style.display='flex';
