@@ -12,7 +12,7 @@
 --jenna:#1A4A7A;--jenna-bg:#EBF3FC;--jenna-border:#A8CCEE;
 --green:#1A6B45;--green-bg:#E6F5EE;--green-border:#7ECBA8;
 --red-bg:#FEF0F0;--red-border:#F5AAAA;--red-text:#8B1A1A;
---bg:#F7F6F2;--surface:#FFFFFF;--border:#E4E1D8;
+--bg:#F7F6F2;--surface:#FFFFFF;--border:#E4E1D8;h
 --text:#1C1B18;--text-muted:#7A7870;--text-light:#B0ADA4;
 --radius:10px;--radius-sm:6px;
 }
@@ -528,7 +528,7 @@ var body=encodeURIComponent(emailData.body);
 var ph=getPhotos(secId);
 if(ph.length>0){
 openPhotoModal(secId,function(){
-window.open('mailto:jenni@goldcoastgymnastics.us?subject='+subject+'&body='+body,'_blank');
+window.open('mailto:jenni@goldcoastgymnastics.us,goldcoastgymnastics@yahoo.com?subject='+subject+'&body='+body,'_blank');
 sectionSubmitted[secId]=true;
 sectionSubmittedAt[secId]=getToday();
 saveTasks();
@@ -536,7 +536,7 @@ renderSections();
 renderTabs();
 });
 }else{
-window.open('mailto:jenni@goldcoastgymnastics.us?subject='+subject+'&body='+body,'_blank');
+window.open('mailto:jenni@goldcoastgymnastics.us,goldcoastgymnastics@yahoo.com?subject='+subject+'&body='+body,'_blank');
 sectionSubmitted[secId]=true;
 sectionSubmittedAt[secId]=getToday();
 saveTasks();
@@ -567,7 +567,7 @@ var maint=maintNotes[day];if(maint&&maint.trim()){lines.push('');lines.push('MAI
 var supList=SUPPLIES.filter(function(_,i){return supplies[i];});if(supList.length){lines.push('');lines.push('SUPPLIES NEEDED: '+supList.join(', '));}
 var subject=encodeURIComponent('GCG Cleaning Report \u2014 '+day+' '+today);
 var body=encodeURIComponent(lines.join('\n'));
-window.open('mailto:jenni@goldcoastgymnastics.us?subject='+subject+'&body='+body,'_blank');
+window.open('mailto:jenni@goldcoastgymnastics.us,goldcoastgymnastics@yahoo.com?subject='+subject+'&body='+body,'_blank');
 }
 
 function switchDay(d){currentDay=d;renderTabs();renderSections();applyFilter();sessionStorage.removeItem('gcg_confetti_day');}
